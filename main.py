@@ -1,15 +1,11 @@
 from pypushdeer import PushDeer
+from dingbot.dingbot import DingBot
 import re
 
-LOG_PATH = r'..\debug\gui.log'  # 日志文件路径
-KEYWORD_START = 'Main windows log clear.'
-KEYWORD_ERROR = '任务出错'
-KEYWORD_WARNING = '代理指挥失误'
-KEYWORD_REPORT = ['开始任务: Fight', '完成任务: Fight', '掉落统计:']
-KEYWORD_REPORT_BREAK = ['已开始行动', '代理指挥失误']
-
-PUSHDEER_SERVER = 'http://yourserver.address'  # PushDeer 服务器地址
-PUSHDEER_KEY = 'Your pushdeer KEY'  # PushDeer API Key
+try:
+    from config import *
+except ImportError:
+    print('请将config.template.py重命名为config.py，并修改其中的配置')
 
 
 def search_keyword():
@@ -70,7 +66,7 @@ def line_report_format(line_report):
     return line_report_output
 
 
-def notify(text, desc):
+def notify_pushdeer(text, desc):
     if PUSHDEER_SERVER != '':
         pushdeer = PushDeer(server=PUSHDEER_SERVER, pushkey=PUSHDEER_KEY)
     else:
@@ -78,21 +74,32 @@ def notify(text, desc):
     pushdeer.send_markdown(text, desc)
 
 
+def notify_dingding(text: str, desc: str):
+    dingbot = DingBot(DINGDING_ACCESS_TOKEN, DINGDING_SECRET)
+    dingbot.send_markdown(text.removeprefix('## '), f"{text}\n{desc}")
+
+
+if NOTIFY_METHOD == 'pushdeer':
+    notify = notify_pushdeer
+elif NOTIFY_METHOD == 'dingding':
+    notify = notify_dingding
+else:
+    raise ValueError(
+        "NOTIFY_METHOD 设置错误"
+    )
+
 if __name__ == '__main__':
     log, line_report = search_keyword()
     # print(line_report)
     if KEYWORD_ERROR in log:
-        text = '## ⚠️MAA has finished your job, but something failed!'
-        desc = "### *Here's the ERROR log*:\n\n" + log + '\n\n' + \
-               "### *Here's the drop report*:\n\n" + line_report_format(line_report)
-        # notify('## ⚠️MAA has finished your job, but something failed!', "### *Here's the ERROR log*:\n\n" + log)
+        text = '## ⚠️MAA 已完成您的任务，但出现了一些错误！'
+        desc = "### *以下是错误日志*:\n\n" + log + '\n\n' + \
+               "### *以下是掉落报告*:\n\n" + line_report_format(line_report)
     elif KEYWORD_WARNING in log:
-        text = '## ⚠️MAA has finished your job, but there\'s warning!'
-        desc = "### *Here's the WARNING log*:\n\n" + log + '\n\n' + \
-               "### *Here's the drop report*:\n\n" + line_report_format(line_report)
-        # notify('## ⚠️MAA has finished your job, but there\'s warning!', "### *Here's the WARNING log*:\n\n" + log)
+        text = '## ⚠️MAA 已完成您的任务，但存在警告！'
+        desc = "### *以下是警告日志*:\n\n" + log + '\n\n' + \
+               "### *以下是掉落报告*:\n\n" + line_report_format(line_report)
     else:
-        text = '## 🎉MAA has finished your job, and everything is perfect!'
-        desc = "### *Here's the drop report*:\n\n" + line_report_format(line_report)
-        # notify('## 🎉MAA has finished your job, and everything is perfect!', '*' + log + '*')
+        text = '## 🎉MAA 已完美完成您的任务！'
+        desc = "### *以下是掉落报告*:\n\n" + line_report_format(line_report)
     notify(text, desc)

@@ -7,3 +7,5 @@ gui.log
 test.py
 
 venv
+
+config.py

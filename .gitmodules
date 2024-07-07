@@ -1,0 +1,3 @@
+[submodule "dingbot"]
+	path = dingbot
+	url = git@github.com:Konecos/dingbot.git
